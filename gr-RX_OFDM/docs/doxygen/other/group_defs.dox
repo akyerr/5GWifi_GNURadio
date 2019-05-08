@@ -1,0 +1,7 @@
+/*!
+ * \defgroup block GNU Radio RX_OFDM C++ Signal Processing Blocks
+ * \brief All C++ blocks that can be used from the RX_OFDM GNU Radio
+ *        module are listed here or in the subcategories below.
+ *
+ */
+
