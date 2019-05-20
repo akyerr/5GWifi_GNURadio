@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<block>
+  <name>Power_Detection</name>
+  <key>RX_OFDM_Power_Detection</key>
+  <category>[RX_OFDM]</category>
+  <import>import RX_OFDM</import>
+  <make>RX_OFDM.Power_Detection()</make>
+
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+  </sink>
+
+  <source>
+    <name>out</name>
+    <type>complex</type>
+  </source>
+</block>

@@ -33,4 +33,7 @@ except ImportError:
 # import any pure python here
 from SynchronizeAndEstimate import SynchronizeAndEstimate
 from BitRecovery import BitRecovery
+from Power_Detection import Power_Detection
+from BitRecovery import BitRecovery
+from Power_Detection import Power_Detection
 #

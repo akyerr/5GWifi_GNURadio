@@ -2,7 +2,7 @@
 <block>
   <name>BitRecovery</name>
   <key>RX_OFDM_BitRecovery</key>
-  <category>RX_OFDM</category>
+  <category>[RX_OFDM]</category>
   <import>import RX_OFDM</import>
   <make>RX_OFDM.BitRecovery($case, $dir_name, $diagnostics)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.

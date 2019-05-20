@@ -2,7 +2,7 @@
 <block>
   <name>SynchronizeAndEstimate</name>
   <key>RX_OFDM_SynchronizeAndEstimate</key>
-  <category>RX_OFDM</category>
+  <category>[RX_OFDM]</category>
   <import>import RX_OFDM</import>
   <make>RX_OFDM.SynchronizeAndEstimate($case)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.

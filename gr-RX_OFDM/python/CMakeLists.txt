@@ -32,7 +32,9 @@ GR_PYTHON_INSTALL(
     FILES
     __init__.py
     SynchronizeAndEstimate.py
-    BitRecovery.py DESTINATION ${GR_PYTHON_DIR}/RX_OFDM
+    BitRecovery.py
+    BitRecovery.py
+    Power_Detection.py DESTINATION ${GR_PYTHON_DIR}/RX_OFDM
 )
 
 ########################################################################
@@ -43,4 +45,5 @@ include(GrTest)
 set(GR_TEST_TARGET_DEPS gnuradio-RX_OFDM)
 set(GR_TEST_PYTHON_DIRS ${CMAKE_BINARY_DIR}/swig)
 GR_ADD_TEST(qa_SynchronizeAndEstimate ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_SynchronizeAndEstimate.py)
+GR_ADD_TEST(qa_BitRecovery ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_BitRecovery.py)
 GR_ADD_TEST(qa_BitRecovery ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/qa_BitRecovery.py)

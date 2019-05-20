@@ -19,5 +19,7 @@
 
 install(FILES
     RX_OFDM_SynchronizeAndEstimate.xml
-    RX_OFDM_BitRecovery.xml DESTINATION share/gnuradio/grc/blocks
+    RX_OFDM_BitRecovery.xml
+    RX_OFDM_BitRecovery.xml
+    RX_OFDM_Power_Detection.xml DESTINATION share/gnuradio/grc/blocks
 )

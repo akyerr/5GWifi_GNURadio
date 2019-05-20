@@ -2,7 +2,7 @@
 <block>
   <name>Simple Tx</name>
   <key>TX_OFDM_SimpleTx</key>
-  <category>TX_OFDM</category>
+  <category>[TX_OFDM]</category>
   <import>import TX_OFDM</import>
   <make>TX_OFDM.SimpleTx($case, $pickle_dir)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
