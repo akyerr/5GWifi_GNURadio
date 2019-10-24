@@ -22,56 +22,62 @@
 import numpy as np
 from gnuradio import gr
 
+
 class SynchronizeAndEstimate(gr.sync_block):
     """
     docstring for block SynchronizeAndEstimate
     """
     # def __init__(self, num_ant_txrx, MIMO_method, NFFT, len_CP, SNR, fs, case):
-    def __init__(self, case):
+    def __init__(self, case, num_bins, diagnostics, freq_offset, bin_selection, buffer_on, buffer_size):
         self.case = 0
         self.case = case
-        SDR_profile = {0: {'system_scenario': '4G5GSISO-TU',
-                            'diagnostic': 1,
-                            'wireless_channel': 'Fading',
-                            'channel_band': 0.97*960e3,
-                            'bin_spacing': 15e3,
-                            'channel_profile': 'LTE-TU',
-                            'CP_type': 'Normal',
-                            'num_ant_txrx': 1,
-                            'param_est': 'Estimated',
-                            'MIMO_method': 'SpMult',
-                            'SNR': 100,
-                            'ebno_db': [100, 100, 100, 100, 100, 100, 100, 100, 100],
-                            'num_symbols': [48, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000],
-                            'stream_size': 1},
-                        1: {'system_scenario': 'WIFIMIMOSM-A',
-                            'diagnostic': 0,
-                            'wireless_channel': 'Fading',
-                            'channel_band': 0.9 * 20e6,
-                            'bin_spacing': 312.5e3,
-                            'channel_profile': 'Indoor A',
-                            'CP_type': 'Extended',
-                            'num_ant_txrx': 2,
-                            'param_est': 'Ideal',
-                            'MIMO_method': 'SpMult',
-                            'SNR': 50,
-                            'ebno_db': [6, 7, 8, 9, 10, 14, 16, 20, 24],
-                            'num_symbols': [10, 10, 10, 10, 10, 10, 10, 10, 10],
-                            'stream_size': 2}}
-        self.system_scenario = SDR_profile[self.case]['system_scenario']
-        self.diagnostic = SDR_profile[self.case]['diagnostic']
-        self.wireless_channel = SDR_profile[self.case]['wireless_channel']
-        self.channel_band = SDR_profile[self.case]['channel_band']
-        self.bin_spacing = SDR_profile[self.case]['bin_spacing']
-        self.channel_profile = SDR_profile[self.case]['channel_profile']
-        self.CP_type = SDR_profile[self.case]['CP_type']
-        self.num_ant_txrx = SDR_profile[self.case]['num_ant_txrx']
-        self.param_est = SDR_profile[self.case]['param_est']
-        self.MIMO_method = SDR_profile[self.case]['MIMO_method']  # Make this 0 (or something) for single antenna
-        self.SNR = SDR_profile[self.case]['SNR']
-        self.ebno_db = SDR_profile[self.case]['ebno_db']
-        self.num_symbols = SDR_profile[self.case]['num_symbols']
-        self.stream_size = SDR_profile[self.case]['stream_size']
+        self.num_bins = float(num_bins)
+        self.diagnostics = diagnostics
+        self.freq_offset = freq_offset
+        self.buffer_size = buffer_size
+        self.buffer_on = buffer_on
+        sdr_profile = {0: {'system_scenario': '4G5GSISO-TU',
+                           'diagnostic': 1,
+                           'wireless_channel': 'Fading',
+                           'channel_band': 0.97*960e3,
+                           'bin_spacing': 15e3,
+                           'channel_profile': 'LTE-TU',
+                           'CP_type': 'Normal',
+                           'num_ant_txrx': 1,
+                           'param_est': 'Estimated',
+                           'MIMO_method': 'SpMult',
+                           'SNR': 5,
+                           'ebno_db': [24],
+                           'num_symbols': [48],
+                           'stream_size': 1},
+                       1: {'system_scenario': 'WIFIMIMOSM-A',
+                           'diagnostic': 0,
+                           'wireless_channel': 'Fading',
+                           'channel_band': 0.9 * 20e6,
+                           'bin_spacing': 312.5e3,
+                           'channel_profile': 'Indoor A',
+                           'CP_type': 'Extended',
+                           'num_ant_txrx': 2,
+                           'param_est': 'Ideal',
+                           'MIMO_method': 'SpMult',
+                           'SNR': 50,
+                           'ebno_db': [6, 7, 8, 9, 10, 14, 16, 20, 24],
+                           'num_symbols': [10, 10, 10, 10, 10, 10, 10, 10, 10],
+                           'stream_size': 2}}
+        self.system_scenario = sdr_profile[self.case]['system_scenario']
+        self.diagnostic = sdr_profile[self.case]['diagnostic']
+        self.wireless_channel = sdr_profile[self.case]['wireless_channel']
+        self.channel_band = sdr_profile[self.case]['channel_band']
+        self.bin_spacing = sdr_profile[self.case]['bin_spacing']
+        self.channel_profile = sdr_profile[self.case]['channel_profile']
+        self.CP_type = sdr_profile[self.case]['CP_type']
+        self.num_ant_txrx = sdr_profile[self.case]['num_ant_txrx']
+        self.param_est = sdr_profile[self.case]['param_est']
+        self.MIMO_method = sdr_profile[self.case]['MIMO_method']  # Make this 0 (or something) for single antenna
+        self.SNR = sdr_profile[self.case]['SNR']
+        self.ebno_db = sdr_profile[self.case]['ebno_db']
+        self.num_symbols = sdr_profile[self.case]['num_symbols']
+        self.stream_size = sdr_profile[self.case]['stream_size']
 
         self.sig_datatype = 'Complex'
         self.phy_chan = 'Data'
@@ -80,21 +86,26 @@ class SynchronizeAndEstimate(gr.sync_block):
         self.synch_data = np.array([1, 3])
         self.SNR_type = 'Digital'  # Digital, Analog
         self.ref_sigs = 0.0
+        self.bin_selection = bin_selection
+
 
         self.NFFT = int(2**(np.ceil(np.log2(round(self.channel_band / self.bin_spacing)))))
         self.fs = self.bin_spacing * self.NFFT
         self.len_CP = int(round(self.NFFT / 4))
 
         self.num_bins0 = np.floor(self.channel_band / self.bin_spacing)
-
-        num_bins0 = self.num_bins0  # Max umber of occupied bins for data
+        num_bins0 = self.num_bins0  # Max number of occupied bins for data
         num_bins1 = 4 * np.floor(num_bins0 / 4)  # Make number of bins a multiple of 4 for MIMO
-
+        if self.diagnostics is True:
+            all_bins = np.array(self.bin_selection)
+        else:
+            all_bins = np.array(list(range(-int(num_bins1 / 2), 0)) + list(range(1, int(num_bins1 / 2) + 1)))
         # positive and negative bin indices
-        all_bins = np.array(list(range(-int(num_bins1 / 2), 0)) + list(range(1, int(num_bins1 / 2) + 1)))
-        # positive and negative bin indices
+        # if bin_diagnostics == 1:
+        #     num_bins0 = np.ones
         ref_bins0 = np.random.randint(1, int(num_bins1 / 2) + 1, size=int(np.floor(num_bins1 * self.ref_sigs / 2)))
         ref_bins = np.unique(ref_bins0)
+
         # positive and negative bin indices
         ref_only_bins = np.sort(np.concatenate((-ref_bins, ref_bins)))  # Bins occupied by pilot (reference) signals
         # positive and negative bin indices - converted to & replaced by positive only in MultiAntennaSystem class
@@ -102,23 +113,19 @@ class SynchronizeAndEstimate(gr.sync_block):
         self.num_data_bins = len(data_only_bins)
         self.used_bins_data = ((self.NFFT + all_bins) % self.NFFT).astype(int)
 
-        num_synchdata_patterns = int(np.ceil(self.num_symbols[0] / sum(self.synch_data)))
+        num_sync_data_patterns = int(np.ceil(self.num_symbols[0] / sum(self.synch_data)))
         symbol_pattern0 = np.concatenate((np.zeros(self.synch_data[0]), np.ones(self.synch_data[1])))
-        self.symbol_pattern = np.tile(symbol_pattern0, num_synchdata_patterns)
+        self.symbol_pattern = np.tile(symbol_pattern0, num_sync_data_patterns)
 
         self.rx_buff_len = self.NFFT + self.len_CP
-
-        # Undefined Use
-        # self.UG = np.zeros((self.num_ant_txrx, self.num_ant_txrx, len(self.used_bins_data)))
-        # self.SG = np.zeros((self.num_ant_txrx, self.num_ant_txrx, len(self.used_bins_data)))
-        # self.VG = np.zeros((self.num_ant_txrx, self.num_ant_txrx, len(self.used_bins_data)))
 
         gr.sync_block.__init__(self,
                                name="SynchronizeAndEstimate",
                                in_sig=[np.complex64],
                                out_sig=[np.complex64])
-        self.num_synch_bins = self.NFFT - 2
-        self.M = np.array([self.synch_data[0], self.num_synch_bins])
+
+        self.num_sync_bins = self.NFFT - 2
+        self.M = np.array([self.synch_data[0], self.num_sync_bins])
         self.MM = np.product(self.M)
         self.prime = 23
 
@@ -131,7 +138,9 @@ class SynchronizeAndEstimate(gr.sync_block):
 
         # print(self.num_used_bins)
 
-        self.used_bins0 = list(range(int(-self.num_synch_bins / 2), 0)) + list(range(1, int(self.num_synch_bins / 2) + 1))
+        self.used_bins0 = list(range(int(-self.num_sync_bins / 2), 0)) + list(
+                range(1, int(self.num_sync_bins / 2) + 1))
+
         self.used_bins = ((self.NFFT + np.array(self.used_bins0)) % self.NFFT)
         self.used_bins_synch = self.used_bins.astype(int)  # Same as Caz.used_bins.astype(int) #i
         self.synch_ref = self.ZChu0  # i (import file)
@@ -139,26 +148,18 @@ class SynchronizeAndEstimate(gr.sync_block):
         self.ptr_o = np.array(range(int(self.len_CP), int(self.len_CP + self.NFFT))).astype(int)
         self.ptr_i = self.ptr_o - np.ceil(int(self.len_CP / 2)).astype(int)
 
-        # lmax_s = int(len(self.symbol_pattern) - sum(self.symbol_pattern))
-        # lmax_d = int(sum(self.symbol_pattern))
-
         lmax_s = 20
         lmax_d = int(sum(self.symbol_pattern))
 
         # self.time_synch_ref = np.zeros((self.num_ant_txrx, lmax_s, 2))  # ONE OF THESE 2 WILL BE REMOVED
 
-        '''obj.EstChanFreqP=zeros(obj.MIMOAnt,LMAXS,obj.Nfft);
-           obj.EstChanFreqN=zeros(obj.MIMOAnt, LMAXS,length(obj.SynchBinsUsed));
-           obj.EstChanTim=zeros(obj.MIMOAnt, LMAXS,2);
-           obj.EstSynchFreq=zeros(obj.MIMOAnt, LMAXS,length(obj.SynchBinsUsed));'''
-
         self.est_chan_freq_p = np.zeros((self.num_ant_txrx, lmax_s, int(self.NFFT)), dtype=complex)
         self.est_chan_freq_n = np.zeros((self.num_ant_txrx, lmax_s, len(self.used_bins_synch)), dtype=complex)
-        self.est_chan_time = np.zeros((self.num_ant_txrx, lmax_s, 2), dtype=complex)
+        self.est_chan_time = np.zeros((self.num_ant_txrx, lmax_s, 3), dtype=complex)
         self.est_synch_freq = np.zeros((self.num_ant_txrx, lmax_s, len(self.used_bins_synch)), dtype=complex)
 
         if self.num_ant_txrx == 1:
-            self.est_data_freq = np.zeros((self.num_ant_txrx, lmax_d, len(self.used_bins_data)), dtype=complex)
+            self.est_data_freq = np.zeros((self.num_ant_txrx, 1, len(self.used_bins_data)), dtype=complex)
         elif self.num_ant_txrx == 2 and self.MIMO_method == 'STCode':
             pass
         elif self.num_ant_txrx == 2 and self.MIMO_method == 'SPMult':
@@ -181,18 +182,40 @@ class SynchronizeAndEstimate(gr.sync_block):
 
         self.rx_buffer_time = np.zeros(self.NFFT, dtype=complex)
         self.rx_buffer_time_data = None
+
+        self.samp_freq = self.NFFT * self.bin_spacing
+        self.samp_period = 1/self.samp_freq
+
+        self.start_ptr = 0
+        self.end_ptr = buffer_size - 1
+        self.current_ptr = 0
+        self.current_end_ptr = 0
+        self.data_buffer = np.zeros((1, buffer_size)) + 1j * np.zeros((1, buffer_size))
+        self.inout = np.zeros((1, buffer_size)) + 1j * np.zeros((1, buffer_size))
+
+        self.dmax_ind_buffer = np.array([0])
     # def write_to_file(self, file_name, var_to_write, var_string):
     #     f = open(file_name, 'a')
     #     f.write('\n' + var_string + str(var_to_write))
     #     f.close()
 
+        # self.iq_buffer_sz = 4096 + 312
+
+        # self.current_data_ptr = 0
+        w = 0.94
+        self.weights = [(1 - w) * w ** 0, (1 - w) * w ** 1, (1 - w) * w ** 2, (1 - w) * w ** 3, (1 - w) * w ** 4, (1 - w) * w ** 5]
+        print(self.weights)
+
     def work(self, input_items, output_items):
+
         in0 = input_items[0]  # input buffer
         out = output_items[0]  # output buffer
-
+        # print("NUM BINS: ", self.num_bins0)
         # print(self.used_bins_data)
         # print(self.num_data_bins)
-
+        # output_buffer_sz = out[:].shape[0]
+        # self.current_data_ptr = self.current_data_ptr % self.iq_buffer_sz
+        # end_ptr = (self.current_data_ptr + output_buffer_sz) % self.iq_buffer_sz
         # print(in0.shape)
         # print(in0[0:10])
 
@@ -201,12 +224,23 @@ class SynchronizeAndEstimate(gr.sync_block):
         # input_data = in0  # read input data from buffer
 
         # Start from the middle of the CP
+        if self.num_ant_txrx == 1:
+            self.est_data_freq = np.zeros((self.num_ant_txrx, 1, len(self.used_bins_data)), dtype=complex)
+        elif self.num_ant_txrx == 2 and self.MIMO_method == 'STCode':
+            pass
+        elif self.num_ant_txrx == 2 and self.MIMO_method == 'SPMult':
+            pass
+        dmax_count = 0
         rx_buffer_time0 = in0
+        rx_buffer_time_fo = rx_buffer_time0
         # print(rx_buffer_time0.shape)
         # rx_buffer_time = rx_buffer_time0[:, ]
+        for index in range(rx_buffer_time0.shape[0]):
+            rx_buffer_time_fo[index] = rx_buffer_time0[index] * np.exp(
+                1j * 2 * np.pi * self.freq_offset * self.samp_period * index)
 
         # num_loops = (len(input_data) - self.window_len) / self.stride_val + 1  # number of windows across rx data
-
+        self.time_synch_ref = np.zeros((self.num_ant_txrx, 250, 3))
         self.stride_val = np.ceil(self.len_CP / 2)
 
         ptr_frame = 0
@@ -218,8 +252,8 @@ class SynchronizeAndEstimate(gr.sync_block):
 
             # chan_q = self.genie_chan_time[m, 0, :]  # 2048
             self.start_samp = (self.len_CP - 4) - 1
-
-            total_loops = int(np.ceil(rx_buffer_time0.shape[0] / self.stride_val))
+            # print("RXBUFFER SHAPE: ", rx_buffer_time0.shape)
+            total_loops = int(np.ceil(rx_buffer_time_fo.shape[0] / self.stride_val))
             # print(total_loops)
             d_long = np.zeros(total_loops)
 
@@ -239,14 +273,15 @@ class SynchronizeAndEstimate(gr.sync_block):
                     ptr_frame = (np.ceil(np.dot(xp[-1:], b) - self.len_CP / 4))[0]
 
                 # print(rx_buffer_time0.shape[1])
-                if (self.M[0] - 1) * self.rx_buff_len + int(self.NFFT) + ptr_frame < rx_buffer_time0.shape[0]:
+                if (self.M[0] - 1) * self.rx_buff_len + int(self.NFFT) + ptr_frame < rx_buffer_time_fo.shape[0]:
                     # print('I am here')
                     # if (self.MM[0] - 1)*self.rx_buff_len + self.NFFT + ptr_frame - 1 < rx_buffer_time0.shape[1]:
                     for i in range(self.M[0]):
                         # print(i)
                         start = int(i * self.rx_buff_len + ptr_frame)
                         fin = int(i * self.rx_buff_len + ptr_frame + int(self.NFFT))
-                        self.rx_buffer_time[i * int(self.NFFT): (i + 1) * int(self.NFFT)] = rx_buffer_time0[start:fin]
+                        self.rx_buffer_time[i * int(self.NFFT): (i + 1) * int(self.NFFT)] = rx_buffer_time_fo[
+                                                                                            start:fin]
 
                     # Take FFT of the window
                     fft_vec = np.zeros((self.M[0], int(self.NFFT)), dtype=complex)
@@ -257,10 +292,11 @@ class SynchronizeAndEstimate(gr.sync_block):
 
                     # print('Synch bins', self.used_bins_synch)
                     # print('No of synch bins', self.used_bins_synch.shape)
+                    # THIS IS KEY ####
                     synch_dat00 = fft_vec[:, self.used_bins_synch]
                     synch_dat0 = np.reshape(synch_dat00, (1, synch_dat00.shape[0] * synch_dat00.shape[1]))
                     pow_est = sum(sum(synch_dat0 * np.conj(synch_dat0))).real / synch_dat0.shape[1]
-                    synch_dat = synch_dat0 / np.sqrt(pow_est)
+                    synch_dat = synch_dat0 / (np.sqrt(pow_est) + 1e-10)
 
                     # from transmit antenna 1 only?
                     # chan_freq0 = np.reshape(self.channel_freq[m, 0, self.used_bins_synch],
@@ -285,7 +321,7 @@ class SynchronizeAndEstimate(gr.sync_block):
                     if dmax > 0.5 * synch_dat.shape[1] or self.corr_obs > -1:
                         # print('I am here')
                         if dmax_ind > np.ceil(0.75 * self.len_CP):
-                            if self.corr_obs == -1: # 0
+                            if self.corr_obs == -1:  # 0
                                 ptr_adj += np.ceil(0.5 * self.len_CP)
                                 ptr_frame = loop_count * self.stride_val + self.start_samp + ptr_adj
                             elif self.corr_obs < 5:
@@ -296,12 +332,13 @@ class SynchronizeAndEstimate(gr.sync_block):
                             for i in range(self.M[0]):
                                 start = i * int(self.NFFT)
                                 fin = (i + 1) * int(self.NFFT)
-                                fft_vec[i, 0:int(self.NFFT)] = np.fft.fft(self.rx_buffer_time[start: fin], int(self.NFFT))
+                                fft_vec[i, 0:int(self.NFFT)] = np.fft.fft(
+                                    self.rx_buffer_time[start: fin], int(self.NFFT))
 
                             synch_dat00 = fft_vec[:, self.used_bins_synch]
                             synch_dat0 = np.reshape(synch_dat00, (1, synch_dat00.shape[0] * synch_dat00.shape[1]))
                             pow_est = sum(sum(synch_dat0 * np.conj(synch_dat0))).real / synch_dat0.shape[1]
-                            synch_dat = synch_dat0 / np.sqrt(pow_est)
+                            synch_dat = synch_dat0 / (np.sqrt(pow_est) + 1e-10)
 
                             # from transmit antenna 1 only?
                             # chan_freq0 = np.reshape(self.channel_freq[m, 0, self.used_bins_synch],
@@ -327,6 +364,7 @@ class SynchronizeAndEstimate(gr.sync_block):
 
                         if ptr_frame - time_synch_ind > (2 * self.len_CP + int(self.NFFT)) or self.corr_obs == -1:
                             self.corr_obs += 1
+                            # print("Found Correlation Observation!")
 
                             self.time_synch_ref[m, self.corr_obs, 0] = ptr_frame
                             self.time_synch_ref[m, self.corr_obs, 1] = dmax_ind
@@ -345,24 +383,44 @@ class SynchronizeAndEstimate(gr.sync_block):
                             if self.corr_obs > 3:
                                 y = ptr_synch0[0:min(tap_delay, self.corr_obs)]
                                 # print(y)
-                                X = np.zeros((len(x2), 2))
-                                X[:, 0] = np.ones(len(x2))
-                                X[:, 1] = x2
+                                xl = np.zeros((len(x2), 2))
+                                xl[:, 0] = np.ones(len(x2))
+                                xl[:, 1] = x2
 
-                                b = np.linalg.lstsq(X, y)[0]
+                                b = np.linalg.lstsq(xl, y)[0]
                                 # print(b)
-
+                            if self.corr_obs == 0:
+                                self.dmax_ind_buffer = np.append(self.dmax_ind_buffer, dmax_ind)
+                                self.dmax_ind_buffer = np.delete(self.dmax_ind_buffer, 0, 0)
+                                # print(self.dmax_ind_buffer)
+                                dmax_count += 1
+                            else:
+                                self.dmax_ind_buffer = np.append(self.dmax_ind_buffer, dmax_ind)
+                                # print(self.dmax_ind_buffer)
+                                dmax_count += 1
+                            # print("Dmax Count: ", dmax_count)
+                            if self.dmax_ind_buffer.shape[0] >= 1:
+                                current_avg_buffer = self.dmax_ind_buffer[-1:]
+                                # print("Current Average Buffer: ", current_avg_buffer)
+                                average_delay = np.average(current_avg_buffer, axis=0, weights=[1.0])
+                                # print("Average Delay Before Ceil: ", average_delay)
+                                average_delay = np.floor(average_delay)
+                                # print("Average Delay Calc: ", average_delay)
+                                # print("Average Delay: ", average_delay)
+                                data_recov0 = np.dot(np.diag(synch_dat[0]), p_mat[:, int(average_delay)])  # -1
+                            else:
+                                data_recov0 = np.dot(np.diag(synch_dat[0]), p_mat[:, dmax_ind])
                             # recovered data with delay removed - DataRecov in MATLAB code
-                            data_recov0 = np.dot(np.diag(synch_dat[0]), p_mat[:, dmax_ind])  #
 
                             h_est1 = np.zeros((int(self.NFFT), 1), dtype=complex)
                             # TmpV1 in MATLAB code
+                            # self.SNR += 1e-10
                             data_recov = (data_recov0 * np.conj(self.synch_ref)) / (1 + (1 / self.SNR))
 
                             h_est00 = np.reshape(data_recov, (data_recov.shape[0], self.M[0]))
                             h_est0 = h_est00.T
 
-                            h_est = np.sum(h_est0, axis=0) / (self.M[0])
+                            h_est = np.sum(h_est0, axis=0) / (self.M[0] + 1e-10)
 
                             h_est1[self.used_bins_synch, 0] = h_est
 
@@ -385,35 +443,39 @@ class SynchronizeAndEstimate(gr.sync_block):
                             # print("equalized synch")
 
                             synch_equalized = (data_recov0 * np.conj(h_est_ext[:, 0])) / (
-                                        (np.conj(h_est_ext[:, 0]) * h_est_ext[:, 0]) + (1 / self.SNR))
+                                    (np.conj(h_est_ext[:, 0]) * h_est_ext[:, 0]) + (1 / (self.SNR + 1e-10)) + 1e-10)
                             self.est_synch_freq[m, self.corr_obs,
-                                                0:len(self.used_bins_synch) * self.M[0]] = synch_equalized
+                            0:len(self.used_bins_synch) * self.M[0]] = synch_equalized
 
                             # print(synch_equalized[0:10])
                             # print(synch_equalized.shape)
                             # out[0:len(synch_equalized)] = synch_equalized
 
                 loop_count += 1
-
+                # print(loop_count)
 
         # return len(output_items[0])
 
-
         if self.num_ant_txrx == 1:
             m = 0  # Just an antenna index
-            for p in range(self.corr_obs + 1):
+            # print("Inside the IF Statement!")
+            for p in range(self.corr_obs):
+                # print("Inside the 1ST FOR Loop!")
                 for data_sym in range(self.synch_data[1]):
-                    if sum(self.time_synch_ref[m, p, :]) + self.NFFT < rx_buffer_time0.shape[0]:
+                    # print("First Half of Boolean: ", sum(
+                    # self.time_synch_ref[m, p, :]) + self.NFFT, " < ", rx_buffer_time0.shape[0])
+                    if sum(self.time_synch_ref[m, p, :]) + self.NFFT < rx_buffer_time_fo.shape[0]:
+                        # print("Passed IF Statement!")
                         data_ptr = int(self.time_synch_ref[m, p, 0] + (data_sym + 1) * self.rx_buff_len)
-                        self.rx_buffer_time_data = rx_buffer_time0[data_ptr: data_ptr + self.NFFT]  # -1
+                        self.rx_buffer_time_data = rx_buffer_time_fo[data_ptr: data_ptr + self.NFFT]  # -1
 
                         fft_vec = np.fft.fft(self.rx_buffer_time_data, self.NFFT)
 
                         freq_dat0 = fft_vec[self.used_bins_data]
-
+                        # print("Frequency Data after FFT: ", freq_dat0)
                         p_est = sum(freq_dat0 * np.conj(freq_dat0)) / len(freq_dat0)
 
-                        p_est += 1e-10
+                        # p_est += 1e-10
 
                         data_recov0 = freq_dat0 / np.sqrt(p_est)
 
@@ -427,22 +489,46 @@ class SynchronizeAndEstimate(gr.sync_block):
 
                         del_rotate = np.exp(
                             1j * 2 * (np.pi / self.NFFT) * self.used_bins_data * self.time_synch_ref[m, p, 1])
+                        print(self.time_synch_ref[m, p, :])
                         data_recov = np.dot(np.diag(data_recov0), del_rotate)
 
                         data_equalized = (data_recov * np.conj(h_est)) / (
-                                    (np.conj(h_est) * h_est) + (1 / self.SNR))
-                        self.est_data_freq[m, p * self.synch_data[1] + data_sym,
-                                           0:len(self.used_bins_data)] = data_equalized
+                                (np.conj(h_est) * h_est) + (1 / self.SNR))
+                        # print("EDF ", self.est_data_freq.shape)
+                        # print("DE ", data_equalized.shape)
+                        # print("p ", p)
+                        # print("self.synch_data[1] ", self.synch_data[1])
+                        # print("data_sym ", data_sym)
 
+                        if p * self.synch_data[1] + data_sym == 0:
+                            self.est_data_freq[m, p, :] = self.est_data_freq[m, p, :] + data_equalized
+                        else:
+                            self.est_data_freq = np.vstack((self.est_data_freq[m, :], data_equalized))
+                            self.est_data_freq = self.est_data_freq[np.newaxis, :, :]
+                        # print(self.est_data_freq.shape)
                         data = self.est_data_freq[m, p, 0:len(self.used_bins_data)]
-                        p_est1 = sum(data * np.conj(data)) / len(data)
+                        p_est1 = sum(data * np.conj(data)) / len(data) + 1e-10
 
-                        self.est_data_freq[m, p * self.synch_data[1] + data_sym,0:len(self.used_bins_data)] /= np.sqrt(p_est1)
+                        self.est_data_freq[
+                        m, p * self.synch_data[1] + data_sym, 0:len(self.used_bins_data)] /= np.sqrt(p_est1)
 
+                        # self.est_data_freq[
+                        # m, p * self.synch_data[1] + data_sym, 0:len(self.used_bins_data)] /= 1
 
-                        data_out = self.est_data_freq[m, p * self.synch_data[1] + data_sym, 0:len(self.used_bins_data)]
-                        # print(data_out.shape)
+                        data_out = self.est_data_freq[m, p * self.synch_data[1] + data_sym,
+                                   0:len(self.used_bins_data)]
+                        # data_out = data_recov0
+                        # print("Data: ", data_out)
+                        # if end_ptr < self.current_ptr:
+                        #     out[0:(self.iq_buffer_sz - self.current_ptr)] = self.iq_buffer[0,
+                        #                                                         self.current_ptr: self.iq_buffer_sz]
+                        #     out[(self.iq_buffer_sz - self.current_ptr):] = self.iq_buffer[0, 0:end_ptr]
+                        # else:
+                        #     out[:] = self.tx_data[0,
+                        #              self.current_ptr % self.source_buffer_sz: end_ptr % self.source_buffer_sz]
+                        # self.current_ptr = self.current_ptr + output_buffer_sz
                         out[0:len(data_out)] = data_out
+                        # print("CORRELATION OBS: ", self.corr_obs)
         # print('Returning {}'.format(len(output_items[0])))
         # print('Start of buffer {}'.format(out[0:10]))
         # print('End of buffer {}'.format(out[-10:]))

@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<block>
+  <name>MAT_Sink</name>
+  <key>RX_OFDM_MAT_Sink</key>
+  <category>[RX_OFDM]</category>
+  <import>import RX_OFDM</import>
+  <make>RX_OFDM.MAT_Sink($file_name, $directory, $variable_name)</make>
+
+  <param>
+    <name>Directory</name>
+    <key>directory</key>
+    <type>string</type>
+  </param>
+
+  <param>
+    <name>File Name</name>
+    <key>file_name</key>
+    <type>string</type>
+  </param>
+
+  <param>
+    <name>MATLAB Variable Name</name>
+    <key>variable_name</key>
+    <type>string</type>
+  </param>
+
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+  </sink>
+</block>

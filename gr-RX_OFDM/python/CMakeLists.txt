@@ -34,7 +34,13 @@ GR_PYTHON_INSTALL(
     SynchronizeAndEstimate.py
     BitRecovery.py
     BitRecovery.py
-    Power_Detection.py DESTINATION ${GR_PYTHON_DIR}/RX_OFDM
+    Power_Detection.py
+    FrequencyOffsetCorrection.py
+    FileSink.py
+    EdgeSmoothing.py
+    Frequency_Offset_Reporter.py
+    MAT_Sink.py
+    CircularBuffer.py DESTINATION ${GR_PYTHON_DIR}/RX_OFDM
 )
 
 ########################################################################

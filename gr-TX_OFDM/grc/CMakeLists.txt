@@ -18,5 +18,5 @@
 # Boston, MA 02110-1301, USA.
 install(FILES
     TX_OFDM_SimpleTx.xml
-    DESTINATION share/gnuradio/grc/blocks
+    TX_OFDM_TxDiagnostics.xml DESTINATION share/gnuradio/grc/blocks
 )

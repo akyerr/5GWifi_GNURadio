@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<block>
+  <name>Circular Buffer</name>
+  <key>RX_OFDM_CircularBuffer</key>
+  <category>[RX_OFDM]</category>
+  <import>import RX_OFDM</import>
+  <make>RX_OFDM.CircularBuffer($buffer_size, $no_zeros)</make>
+
+  <param>
+    <name>Buffer Size</name>
+    <key>buffer_size</key>
+    <type>float</type>
+  </param>
+
+  <param>
+    <name>Smoothing</name>
+    <key>no_zeros</key>
+    <type>int</type>
+  </param>
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+  </sink>
+
+  <source>
+    <name>out</name>
+    <type>complex</type>
+  </source>
+</block>

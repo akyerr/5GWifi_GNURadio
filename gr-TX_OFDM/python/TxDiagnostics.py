@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # 
-# Copyright 2019 <+YOU OR YOUR COMPANY+>.
+# Copyright 2019 gr-TX_OFDM author.
 # 
 # This is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,32 +24,36 @@ import pickle
 from gnuradio import gr
 
 
-class SimpleTx(gr.sync_block):
+class TxDiagnostics(gr.sync_block):
     """
-    docstring for block SimpleTx
+    docstring for block TxDiagnostics
     """
-    def __init__(self, case, pickle_dir, file_name):
+    def __init__(self, case, pickle_dir):
         gr.sync_block.__init__(self,
-                               name="SimpleTx",
+                               name="TxDiagnostics",
                                in_sig=None,
                                out_sig=[numpy.complex64])
-        with open(pickle_dir + file_name) as f:
-            self.tx_data = pickle.load(f)
-        self.source_buffer_sz = self.tx_data.shape[1]
 
-        self.current_ptr = 0
+        with open('{}/tx_data_{}.pckl'.format(pickle_dir, case)) as f:
+            self.tx_data = pickle.load(f)
+
+        self.work_call = 0
 
     def work(self, input_items, output_items):
         out = output_items[0]
-        output_buffer_sz = out[:].shape[0]
-        self.current_ptr = self.current_ptr % self.source_buffer_sz
-        end_ptr = (self.current_ptr + output_buffer_sz) % self.source_buffer_sz
-        # print("Current Ptr: ", self.current_ptr, "End Ptr: ", end_ptr)
-        # print("Shape of TX Data: ", self.tx_data.shape)
-        if end_ptr < self.current_ptr:
-            out[0:(self.source_buffer_sz - self.current_ptr)] = self.tx_data[0, self.current_ptr: self.source_buffer_sz]
-            out[(self.source_buffer_sz - self.current_ptr):] = self.tx_data[0, 0:end_ptr]
+
+        # if out[:].shape == self.tx_data.shape[1]:
+        if 50 <= self.work_call <= 600:
+            # print("Generating Signal...")
+            if out[:].shape[0] < self.tx_data.shape[1]:
+                out[:] = numpy.zeros(out[:].shape[0])
+            else:
+                out[0:self.tx_data.shape[1]] = self.tx_data[0, :]
         else:
-            out[:] = self.tx_data[0, self.current_ptr % self.source_buffer_sz: end_ptr % self.source_buffer_sz]
-        self.current_ptr = self.current_ptr + output_buffer_sz
+            # print("Generating Zeros...")
+            out[:] = numpy.zeros(out[:].shape[0])
+
+        self.work_call += 1
+        # print("Work Call: ", self.work_call)
+
         return len(output_items[0])
