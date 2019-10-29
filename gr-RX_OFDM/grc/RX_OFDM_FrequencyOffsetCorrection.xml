@@ -1,60 +1,37 @@
 <?xml version="1.0"?>
 <block>
-  <name>SynchronizeAndEstimate</name>
-  <key>RX_OFDM_SynchronizeAndEstimate</key>
+  <name>Frequency Offset Correction</name>
+  <key>RX_OFDM_FrequencyOffsetCorrection</key>
   <category>[RX_OFDM]</category>
   <import>import RX_OFDM</import>
-  <make>RX_OFDM.SynchronizeAndEstimate($case, $num_bins, $diagnostics, $freq_offset, $bin_selection, $buffer_on, $buffer_size, $seed_value)</make>
+  <make>RX_OFDM.FrequencyOffsetCorrection($min, $max, $step, $sample_frequency)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
        * key (makes the value accessible as $keyname, e.g. in the make node)
        * type -->
   <param>
-    <name>Case</name>
-    <key>case</key>
-    <type>int</type>
-  </param>
-
-
-   <param>
-    <name>Number of Bins</name>
-    <key>num_bins</key>
-    <type>int</type>
-  </param>
-
-   <param>
-    <name>Diagnostics</name>
-    <key>diagnostics</key>
-    <type>int</type>
-  </param>
-  <param>
-    <name>Frequency Offset (Hz)</name>
-    <key>freq_offset</key>
-    <type>float</type>
-  </param>
-  <param>
-    <name>Bin Selection</name>
-    <key>bin_selection</key>
-    <type>raw</type>
-  </param>
-
-  <param>
-    <name>Buffer Toggle</name>
-    <key>buffer_on</key>
-    <type>int</type>
-  </param>
-
-  <param>
-    <name>Buffer Size</name>
-    <key>buffer_size</key>
+    <name>Minimum Frequency</name>
+    <key>min</key>
     <type>float</type>
   </param>
 
-<param>
-    <name>Zadoff Chu Seed Value</name>
-    <key>seed_value</key>
-    <type>int</type>
+  <param>
+    <name>Maximum Frequency</name>
+    <key>max</key>
+    <type>float</type>
+  </param>
+
+  <param>
+    <name>Step Size</name>
+    <key>step</key>
+    <type>float</type>
+  </param>
+
+  <param>
+    <name>Sample Rate</name>
+    <key>sample_frequency</key>
+    <type>float</type>
   </param>
   <!-- Make one 'sink' node per input. Sub-nodes:
        * name (an identifier for the GUI)

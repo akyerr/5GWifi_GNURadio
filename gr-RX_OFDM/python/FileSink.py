@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # 
-# Copyright 2019 <+YOU OR YOUR COMPANY+>.
+# Copyright 2019 gr-RX_OFDM author.
 # 
 # This is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,23 +19,29 @@
 # Boston, MA 02110-1301, USA.
 # 
 
-from gnuradio import gr, gr_unittest
-from gnuradio import blocks
-from SynchronizeAndEstimate import SynchronizeAndEstimate
-
-class qa_SynchronizeAndEstimate (gr_unittest.TestCase):
-
-    def setUp (self):
-        self.tb = gr.top_block ()
-
-    def tearDown (self):
-        self.tb = None
-
-    def test_001_t (self):
-        # set up fg
-        self.tb.run ()
-        # check data
+import numpy as np
+import pickle
+from gnuradio import gr
 
 
-if __name__ == '__main__':
-    gr_unittest.run(qa_SynchronizeAndEstimate, "qa_SynchronizeAndEstimate.xml")
+class FileSink(gr.sync_block):
+    """
+    docstring for block FileSink
+    """
+    def __init__(self, directory, file_name):
+        gr.sync_block.__init__(self,
+                               name="FileSink",
+                               in_sig=[np.complex64],
+                               out_sig=None)
+        self.directory = directory
+        self.file_name = file_name
+        self.path = self.directory + file_name
+
+    def work(self, input_items, output_items):
+        in0 = input_items[0]
+
+        with open(self.path, 'a+') as handle:
+            pickle.dump(in0, handle, protocol=2)
+
+        return len(input_items[0])
+

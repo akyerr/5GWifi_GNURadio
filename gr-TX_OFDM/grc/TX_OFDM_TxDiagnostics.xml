@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <block>
-  <name>Simple Tx 2</name>
-  <key>TX_OFDM_SimpleTx</key>
+  <name>TxDiagnostics</name>
+  <key>TX_OFDM_TxDiagnostics</key>
   <category>[TX_OFDM]</category>
   <import>import TX_OFDM</import>
-  <make>TX_OFDM.SimpleTx($case, $pickle_dir, $file_name)</make>
+  <make>TX_OFDM.TxDiagnostics($case, $pickle_dir)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
@@ -19,12 +19,6 @@
   <param>
     <name>Pickle Directory</name>
     <key>pickle_dir</key>
-    <type>string</type>
-  </param>
-
-    <param>
-    <name>File Name</name>
-    <key>file_name</key>
     <type>string</type>
   </param>
 
