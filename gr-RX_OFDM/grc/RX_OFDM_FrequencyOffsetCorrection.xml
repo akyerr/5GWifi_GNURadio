@@ -1,39 +1,47 @@
 <?xml version="1.0"?>
 <block>
-  <name>Simple Tx 2</name>
-  <key>TX_OFDM_SimpleTx</key>
-  <category>[TX_OFDM]</category>
-  <import>import TX_OFDM</import>
-  <make>TX_OFDM.SimpleTx($case, $pickle_dir, $file_name)</make>
+  <name>Frequency Offset Correction</name>
+  <key>RX_OFDM_FrequencyOffsetCorrection</key>
+  <category>[RX_OFDM]</category>
+  <import>import RX_OFDM</import>
+  <make>RX_OFDM.FrequencyOffsetCorrection($min, $max, $step, $sample_frequency)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
        * key (makes the value accessible as $keyname, e.g. in the make node)
        * type -->
   <param>
-    <name>Case</name>
-    <key>case</key>
-    <type>int</type>
+    <name>Minimum Frequency</name>
+    <key>min</key>
+    <type>float</type>
   </param>
 
   <param>
-    <name>Pickle Directory</name>
-    <key>pickle_dir</key>
-    <type>string</type>
+    <name>Maximum Frequency</name>
+    <key>max</key>
+    <type>float</type>
   </param>
 
-    <param>
-    <name>File Name</name>
-    <key>file_name</key>
-    <type>string</type>
+  <param>
+    <name>Step Size</name>
+    <key>step</key>
+    <type>float</type>
   </param>
 
+  <param>
+    <name>Sample Rate</name>
+    <key>sample_frequency</key>
+    <type>float</type>
+  </param>
   <!-- Make one 'sink' node per input. Sub-nodes:
        * name (an identifier for the GUI)
        * type
        * vlen
        * optional (set to 1 for optional inputs) -->
-
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+  </sink>
 
   <!-- Make one 'source' node per output. Sub-nodes:
        * name (an identifier for the GUI)

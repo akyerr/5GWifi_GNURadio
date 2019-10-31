@@ -20,36 +20,50 @@
 # 
 
 import numpy as np
+import pickle
+import scipy.io
 from gnuradio import gr
 
 
 class Power_Detection(gr.sync_block):
+
     def __init__(self):
         gr.sync_block.__init__(self,
                                name="Power_Detection",
                                in_sig=[np.complex64],
                                out_sig=[np.complex64])
+        self.window_size = 32
+        self.window_slide_dist = 1
+        self.mat_variable = dict()
+        self.mat_variable['signal'] = np.zeros(1) + 1j
 
     def work(self, input_items, output_items):
         in0 = input_items[0]
         out = output_items[0]
+        
+        start = 0
+        end = 0
 
-        # Initialize Per Function Call
-        x = np.zeros(1)
-        count = 1
+        num_windows = int(np.ceil((len(in0) - self.window_size)/self.window_slide_dist) + 1)
 
-        for i in range(len(in0)):
-            x = np.absolute(in0[i])**2 + x
-            count += 1
-        rms_power = np.sqrt(x/count)
+        for i in range(num_windows):
+            start = i * self.window_slide_dist
+            if end > len(in0):
+                end = len(in0)
+            else:
+                end = start + self.window_size
+            x_win = in0[start:end]
+            x_pow = np.sum(np.abs(x_win) ** 2) / self.window_size
+            if x_pow > 0.01:
+                # print("Signal Found!")
+                # print("Good Signal... x_pow", x_pow)
+                self.mat_variable['signal'] = in0
+                print(self.mat_variable)
+                scipy.io.savemat('/home/tayloreisman/Desktop/goodsignal.mat', self.mat_variable)
+                out[:] = in0
 
-        if rms_power > 0.05:
-            out[:] = in0
-            print('Signal!')
-        else:
-            out[:] = np.zeros(len(input_items[0]))
-            print('No Signal!')
-
+            else:
+                # print("Signal Not Found!")
+                # print("Bad Signal... x_pow: ", x_pow)
+                out[:] = in0
         return len(output_items[0])
-
-

@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<block>
+  <name>Frequency Offset Status</name>
+  <key>RX_OFDM_Frequency_Offset_Reporter</key>
+  <category>[RX_OFDM]</category>
+  <import>import RX_OFDM</import>
+  <make>RX_OFDM.Frequency_Offset_Reporter()</make>
+
+  <sink>
+    <name>in</name>
+    <type>complex</type>
+  </sink>
+</block>

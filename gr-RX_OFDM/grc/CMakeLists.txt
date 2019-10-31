@@ -16,10 +16,15 @@
 # along with GNU Radio; see the file COPYING.  If not, write to
 # the Free Software Foundation, Inc., 51 Franklin Street,
 # Boston, MA 02110-1301, USA.
-
 install(FILES
     RX_OFDM_SynchronizeAndEstimate.xml
     RX_OFDM_BitRecovery.xml
     RX_OFDM_BitRecovery.xml
-    RX_OFDM_Power_Detection.xml DESTINATION share/gnuradio/grc/blocks
+    RX_OFDM_Power_Detection.xml
+    RX_OFDM_FrequencyOffsetCorrection.xml
+    RX_OFDM_FileSink.xml
+    RX_OFDM_EdgeSmoothing.xml
+    RX_OFDM_Frequency_Offset_Reporter.xml
+    RX_OFDM_MAT_Sink.xml
+    RX_OFDM_CircularBuffer.xml DESTINATION share/gnuradio/grc/blocks
 )

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # 
-# Copyright 2019 <+YOU OR YOUR COMPANY+>.
+# Copyright 2019 gr-RX_OFDM author.
 # 
 # This is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,23 +19,28 @@
 # Boston, MA 02110-1301, USA.
 # 
 
-from gnuradio import gr, gr_unittest
-from gnuradio import blocks
-from SynchronizeAndEstimate import SynchronizeAndEstimate
-
-class qa_SynchronizeAndEstimate (gr_unittest.TestCase):
-
-    def setUp (self):
-        self.tb = gr.top_block ()
-
-    def tearDown (self):
-        self.tb = None
-
-    def test_001_t (self):
-        # set up fg
-        self.tb.run ()
-        # check data
+import numpy as np
+from gnuradio import gr
 
 
-if __name__ == '__main__':
-    gr_unittest.run(qa_SynchronizeAndEstimate, "qa_SynchronizeAndEstimate.xml")
+class EdgeSmoothing(gr.sync_block):
+    """
+    docstring for block EdgeSmoothing
+    """
+    def __init__(self):
+        gr.sync_block.__init__(self,
+                               name="EdgeSmoothing",
+                               in_sig=[np.complex64],
+                               out_sig=[np.complex64])
+
+    def work(self, input_items, output_items):
+        in0 = input_items[0]
+        out = output_items[0]
+        count = 0
+        for i in in0:
+            if abs(i) < 1e-5:
+                in0[count] = 0 + 0j
+            count += 1
+        out[:] = in0
+        return len(output_items[0])
+

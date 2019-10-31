@@ -34,6 +34,20 @@ except ImportError:
 from SynchronizeAndEstimate import SynchronizeAndEstimate
 from BitRecovery import BitRecovery
 from Power_Detection import Power_Detection
+from FrequencyOffsetCorrection import FrequencyOffsetCorrection
+from FileSink import FileSink
+from EdgeSmoothing import EdgeSmoothing
+from Frequency_Offset_Reporter import Frequency_Offset_Reporter
+from MAT_Sink import MAT_Sink
+from CircularBuffer import CircularBuffer
+
 from BitRecovery import BitRecovery
 from Power_Detection import Power_Detection
+from FrequencyOffsetCorrection import FrequencyOffsetCorrection
+from FileSink import FileSink
+from EdgeSmoothing import EdgeSmoothing
+from Frequency_Offset_Reporter import Frequency_Offset_Reporter
+from MAT_Sink import MAT_Sink
+from CircularBuffer import CircularBuffer
+
 #

@@ -4,7 +4,7 @@
   <key>RX_OFDM_SynchronizeAndEstimate</key>
   <category>[RX_OFDM]</category>
   <import>import RX_OFDM</import>
-  <make>RX_OFDM.SynchronizeAndEstimate($case)</make>
+  <make>RX_OFDM.SynchronizeAndEstimate($case, $num_bins, $diagnostics, $freq_offset, $bin_selection, $buffer_on, $buffer_size, $seed_value, $snr, $corr_ind_processing)</make>
   <!-- Make one 'param' node for every Parameter you want settable from the GUI.
        Sub-nodes:
        * name
@@ -16,6 +16,58 @@
     <type>int</type>
   </param>
 
+
+   <param>
+    <name>Number of Bins</name>
+    <key>num_bins</key>
+    <type>int</type>
+  </param>
+
+   <param>
+    <name>Diagnostics</name>
+    <key>diagnostics</key>
+    <type>int</type>
+  </param>
+  <param>
+    <name>Frequency Offset (Hz)</name>
+    <key>freq_offset</key>
+    <type>float</type>
+  </param>
+  <param>
+    <name>Bin Selection</name>
+    <key>bin_selection</key>
+    <type>raw</type>
+  </param>
+
+  <param>
+    <name>Buffer Toggle</name>
+    <key>buffer_on</key>
+    <type>int</type>
+  </param>
+
+  <param>
+    <name>Buffer Size</name>
+    <key>buffer_size</key>
+    <type>float</type>
+  </param>
+
+<param>
+    <name>Zadoff Chu Seed Value</name>
+    <key>seed_value</key>
+    <type>int</type>
+  </param>
+
+<param>
+    <name>Estimated SNR</name>
+    <key>snr</key>
+    <type>int</type>
+</param>
+
+    <param>
+    <name>Index Delay Post-Processing Toggle</name>
+    <key>corr_ind_processing</key>
+    <type>int</type>
+</param>
   <!-- Make one 'sink' node per input. Sub-nodes:
        * name (an identifier for the GUI)
        * type
