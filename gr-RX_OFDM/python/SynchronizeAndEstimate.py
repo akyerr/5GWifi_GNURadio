@@ -219,19 +219,19 @@ class SynchronizeAndEstimate(gr.sync_block):
         self.stride_val = np.ceil(self.len_CP / 2)
 
         ptr_frame = 0
-        b = 0
-        xp = []
+        m_c_coefficients = 0
+        x_symbol_count_lookahead = []
 
-        for m in range(1):
+        for antenna_index in range(1):
             self.correlation_observations = -1
             self.start_sample = (self.len_CP - 4) - 1
             total_loops = int(np.ceil(input_with_freq_offset.shape[0] / self.stride_val))
             correlations_val_vector = np.zeros(total_loops)
 
-            ptr_adj, loop_count, symbol_count = 0, 0, 0
+            ptr_adj, loop_count, frame_count = 0, 0, 0
 
             tap_delay = 5
-            x = np.zeros(tap_delay)
+            symbol_count = np.zeros(tap_delay)
             corrected_ptr = np.zeros(1000)
 
             while loop_count <= total_loops:
@@ -240,7 +240,7 @@ class SynchronizeAndEstimate(gr.sync_block):
                 elif self.correlation_observations < 5:
                     ptr_frame += sum(self.synch_data_pattern) * (int(self.NFFT) + self.len_CP)
                 else:
-                    ptr_frame = (np.ceil(np.dot(xp[-1:], b) - self.len_CP / 4))[0]
+                    ptr_frame = (np.ceil(np.dot(x_symbol_count_lookahead[-1:], m_c_coefficients) - self.len_CP / 4))[0]
 
                 if (self.num_of_synchs_and_synch_bins[0] - 1) * self.symbol_length + int(self.NFFT) + ptr_frame < input_with_freq_offset.shape[0]:
                     for i in range(self.num_of_synchs_and_synch_bins[0]):
@@ -262,17 +262,17 @@ class SynchronizeAndEstimate(gr.sync_block):
 
                     bin_index = self.synch_used_bins[:, None]
                     cp_delays = np.array(range(int(self.len_CP + 1)))[:, None]
-                    p_mat0 = np.exp(1j * 2 * (np.pi / self.NFFT) * np.dot(bin_index, cp_delays.T))
+                    delay_matrix = np.exp(1j * 2 * (np.pi / self.NFFT) * np.dot(bin_index, cp_delays.T))
 
-                    p_mat = np.tile(p_mat0, (self.num_of_synchs_and_synch_bins[0], 1))
+                    tiled_delay_matrix = np.tile(delay_matrix, (self.num_of_synchs_and_synch_bins[0], 1))
 
-                    self.correlation_matrix = np.dot(np.conj(self.synch_reference)[None, :], np.dot(np.diag(synch_freq_data_normalized[0]), p_mat))
+                    self.correlation_matrix = np.dot(np.conj(self.synch_reference)[None, :], np.dot(np.diag(synch_freq_data_normalized[0]), tiled_delay_matrix))
                     abs_correlation_matrix = abs(self.correlation_matrix[0, :])
                     correlation_value, correlation_index = abs_correlation_matrix.max(0), abs_correlation_matrix.argmax(0)
                     correlations_val_vector[loop_count] = correlation_value
 
-                    if correlation_value > 0.5 * synch_freq_data_normalized.shape[1] or self.correlation_observations > -1:
-                        if correlation_index > np.ceil(0.75 * self.len_CP):
+                    if correlation_value > 0.50 * synch_freq_data_normalized.shape[1] or self.correlation_observations > -1:
+                        if correlation_index > np.ceil(0.50 * self.len_CP):
                             if self.correlation_observations == -1:  # 0
                                 ptr_adj += np.ceil(0.5 * self.len_CP)
                                 ptr_frame = loop_count * self.stride_val + self.start_sample + ptr_adj
@@ -293,41 +293,45 @@ class SynchronizeAndEstimate(gr.sync_block):
 
                             bin_index = self.synch_used_bins[:, None]
                             cp_delays = np.array(range(self.len_CP + 1))[:, None]
+                            print("Result: ", np.dot(bin_index, cp_delays.T))
+                            delay_matrix = np.exp(1j * 2 * (np.pi / int(self.NFFT)) * np.dot(bin_index, cp_delays.T))
+                            tiled_delay_matrix = np.tile(delay_matrix, (self.num_of_synchs_and_synch_bins[0], 1))
 
-                            p_mat0 = np.exp(1j * 2 * (np.pi / int(self.NFFT)) * np.dot(bin_index, cp_delays.T))
-                            p_mat = np.tile(p_mat0, (self.num_of_synchs_and_synch_bins[0], 1))
-
-                            self.correlation_matrix = np.dot(np.conj(self.synch_reference)[None, :], np.dot(np.diag(synch_freq_data_normalized[0]), p_mat))
+                            self.correlation_matrix = np.dot(np.conj(self.synch_reference)[None, :], np.dot(np.diag(synch_freq_data_normalized[0]), tiled_delay_matrix))
                             abs_correlation_matrix = abs(self.correlation_matrix[0, :])
                             correlation_value, correlation_index = abs_correlation_matrix.max(0), abs_correlation_matrix.argmax(0)
                             correlations_val_vector[loop_count] = correlation_value
 
-                        time_synch_ind = self.correlation_frame_index_value_buffer[m, max(self.correlation_observations, 1), 0]
+                        time_synch_ind = self.correlation_frame_index_value_buffer[antenna_index, max(self.correlation_observations, 1), 0]
 
-                        if ptr_frame - time_synch_ind > (2 * self.len_CP + int(self.NFFT)) or self.correlation_observations == -1:
+                        if ptr_frame - time_synch_ind > (sum(self.synch_data_pattern) * (self.len_CP + int(self.NFFT))) or self.correlation_observations == -1:
                             self.correlation_observations += 1
 
-                            self.correlation_frame_index_value_buffer[m, self.correlation_observations, 0] = ptr_frame
-                            self.correlation_frame_index_value_buffer[m, self.correlation_observations, 1] = correlation_index
-                            self.correlation_frame_index_value_buffer[m, self.correlation_observations, 2] = correlation_value
+                            self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 0] = ptr_frame
+                            self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 1] = correlation_index
+                            self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 2] = correlation_value
 
-                            corrected_ptr[symbol_count % tap_delay] = sum(self.correlation_frame_index_value_buffer[m, self.correlation_observations, 0:2])
-                            x[symbol_count % tap_delay] = symbol_count * sum(self.synch_data_pattern)  # No need for +1 on lhs
-                            symbol_count += 1
+                            corrected_ptr[frame_count % tap_delay] = sum(self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 0:2])
+                            symbol_count[frame_count % tap_delay] = frame_count * sum(self.synch_data_pattern)  # No need for +1 on lhs
+                            print("X: ", symbol_count)
+                            frame_count += 1
 
-                            x2 = x[0:min(self.correlation_observations, tap_delay)]
-                            x_plus = np.concatenate((x2, np.atleast_1d(symbol_count * sum(self.synch_data_pattern))))
-                            xp = np.zeros((len(x_plus), 2))
-                            xp[:, 0] = np.ones(len(x_plus))
-                            xp[:, 1] = x_plus
+                            symbol_count_current = symbol_count[0:min(self.correlation_observations, tap_delay)]
+                            print("X2: ", symbol_count_current)
+                            symbol_count_lookahead = np.concatenate((symbol_count_current, np.atleast_1d(frame_count * sum(self.synch_data_pattern))))
+                            print("Xplus: ", symbol_count_lookahead)
+                            x_symbol_count_lookahead = np.zeros((len(symbol_count_lookahead), 2))
+                            x_symbol_count_lookahead[:, 0] = np.ones(len(symbol_count_lookahead))
+                            x_symbol_count_lookahead[:, 1] = symbol_count_lookahead
 
                             if self.correlation_observations > 3:
-                                y = corrected_ptr[0:min(tap_delay, self.correlation_observations)]
-                                xl = np.zeros((len(x2), 2))
-                                xl[:, 0] = np.ones(len(x2))
-                                xl[:, 1] = x2
-
-                                b = np.linalg.lstsq(xl, y)[0]
+                                y_time_series_current_ptr = corrected_ptr[0:min(tap_delay, self.correlation_observations)]
+                                x_symbol_count_current = np.zeros((len(symbol_count_current), 2))
+                                x_symbol_count_current[:, 0] = np.ones(len(symbol_count_current))
+                                x_symbol_count_current[:, 1] = symbol_count_current
+                                print("x_symbol_count_current: ", x_symbol_count_current, " y_time_series_current_ptr: ", y_time_series_current_ptr)
+                                m_c_coefficients = np.linalg.lstsq(x_symbol_count_current, y_time_series_current_ptr)[0]
+                                print("m_c_coefficients: ", m_c_coefficients)
                             if self.correlation_observations == 0:
                                 self.max_correlation_index_buffer = np.append(self.max_correlation_index_buffer, correlation_index)
                                 self.max_correlation_index_buffer = np.delete(self.max_correlation_index_buffer, 0, 0)
@@ -342,11 +346,11 @@ class SynchronizeAndEstimate(gr.sync_block):
                                     average_delay = gmean(current_avg_buffer)
                                     average_delay = np.round(average_delay)
                                     best_index = np.argmin(average_delay)
-                                    input_data_freq_normalized = np.dot(np.diag(synch_freq_data_normalized[0]), p_mat[:, int(current_avg_buffer[best_index])])  # -1
+                                    input_data_freq_normalized = np.dot(np.diag(synch_freq_data_normalized[0]), tiled_delay_matrix[:, int(current_avg_buffer[best_index])])  # -1
                                 else:
-                                    input_data_freq_normalized = np.dot(np.diag(synch_freq_data_normalized[0]), p_mat[:, correlation_index])
+                                    input_data_freq_normalized = np.dot(np.diag(synch_freq_data_normalized[0]), tiled_delay_matrix[:, correlation_index])
                             else:
-                                input_data_freq_normalized = np.dot(np.diag(synch_freq_data_normalized[0]), p_mat[:, correlation_index])
+                                input_data_freq_normalized = np.dot(np.diag(synch_freq_data_normalized[0]), tiled_delay_matrix[:, correlation_index])
 
                             h_est1 = np.zeros((int(self.NFFT), 1), dtype=complex)
                             input_data_freq_rotated = (input_data_freq_normalized * np.conj(self.synch_reference)) / (1 + (1 / self.SNR))
@@ -357,26 +361,25 @@ class SynchronizeAndEstimate(gr.sync_block):
                             channel_estimate_avg_across_synchs = np.sum(h_est0, axis=0) / (self.num_of_synchs_and_synch_bins[0])
                             h_est1[self.synch_used_bins, 0] = channel_estimate_avg_across_synchs
 
-                            self.est_chan_freq_p[m, self.correlation_observations, 0:len(h_est1)] = h_est1[:, 0]
-                            self.est_chan_freq_n[m, self.correlation_observations, 0:len(channel_estimate_avg_across_synchs)] = channel_estimate_avg_across_synchs
+                            self.est_chan_freq_p[antenna_index, self.correlation_observations, 0:len(h_est1)] = h_est1[:, 0]
+                            self.est_chan_freq_n[antenna_index, self.correlation_observations, 0:len(channel_estimate_avg_across_synchs)] = channel_estimate_avg_across_synchs
 
                             h_est_time = np.fft.ifft(h_est1[:, 0], int(self.NFFT))
-                            self.est_chan_impulse[m, self.correlation_observations, 0:len(h_est_time)] = h_est_time
+                            self.est_chan_impulse[antenna_index, self.correlation_observations, 0:len(h_est_time)] = h_est_time
 
                             h_est_ext = np.tile(channel_estimate_avg_across_synchs, (1, self.num_of_synchs_and_synch_bins[0])).T
-                            print(h_est_ext.shape)
 
                             synch_equalized = (input_data_freq_normalized * np.conj(h_est_ext[:, 0])) / ((np.conj(h_est_ext[:, 0]) * h_est_ext[:, 0]) + (1 / (self.SNR + 1e-10)))
-                            self.est_synch_freq[m, self.correlation_observations, 0:len(self.synch_used_bins) * self.num_of_synchs_and_synch_bins[0]] = synch_equalized
+                            self.est_synch_freq[antenna_index, self.correlation_observations, 0:len(self.synch_used_bins) * self.num_of_synchs_and_synch_bins[0]] = synch_equalized
 
                 loop_count += 1
 
         if self.num_ant_txrx == 1:
-            m = 0
-            for p in range(self.correlation_observations):
-                for data_sym in range(self.synch_data_pattern[1]):
-                    if sum(self.correlation_frame_index_value_buffer[m, p, :]) + self.NFFT < input_with_freq_offset.shape[0]:
-                        data_ptr = int(self.correlation_frame_index_value_buffer[m, p, 0] + (data_sym + 1) * self.symbol_length)
+            antenna_index = 0
+            for corr_obs_index in range(self.correlation_observations):
+                for data_symbol_index in range(self.synch_data_pattern[1]):
+                    if sum(self.correlation_frame_index_value_buffer[antenna_index, corr_obs_index, :]) + self.NFFT < input_with_freq_offset.shape[0]:
+                        data_ptr = int(self.correlation_frame_index_value_buffer[antenna_index, corr_obs_index, 0] + (data_symbol_index + 1) * self.symbol_length)
                         self.rx_buffer_time_data = input_with_freq_offset[data_ptr: data_ptr + self.NFFT]
 
                         fft_vec = np.fft.fft(self.rx_buffer_time_data, self.NFFT)
@@ -385,27 +388,24 @@ class SynchronizeAndEstimate(gr.sync_block):
                         input_pow_est = sum(input_data_freq * np.conj(input_data_freq)) / len(input_data_freq)
 
                         input_data_freq_normalized = input_data_freq / np.sqrt(input_pow_est)
-                        channel_estimate_avg_across_synchs = self.est_chan_freq_p[m, p, self.used_bins_data]
+                        channel_estimate_avg_across_synchs = self.est_chan_freq_p[antenna_index, corr_obs_index, self.used_bins_data]
 
-                        del_rotate = np.exp(1j * 2 * (np.pi / self.NFFT) * self.used_bins_data * self.correlation_frame_index_value_buffer[m, p, 1])
+                        del_rotate = np.exp(1j * 2 * (np.pi / self.NFFT) * self.used_bins_data * self.correlation_frame_index_value_buffer[antenna_index, corr_obs_index, 1])
                         input_data_freq_rotated = np.dot(np.diag(input_data_freq_normalized), del_rotate)
 
                         input_data_freq_equalized = (input_data_freq_rotated * np.conj(channel_estimate_avg_across_synchs)) / (
                                 (np.conj(channel_estimate_avg_across_synchs) * channel_estimate_avg_across_synchs) + (1 / self.SNR))
 
-                        if p * self.synch_data_pattern[1] + data_sym == 0:
-                            self.est_data_freq[m, p, :] = self.est_data_freq[m, p, :] + input_data_freq_equalized
+                        if corr_obs_index * self.synch_data_pattern[1] + data_symbol_index == 0:
+                            self.est_data_freq[antenna_index, corr_obs_index, :] = self.est_data_freq[antenna_index, corr_obs_index, :] + input_data_freq_equalized
                         else:
-                            self.est_data_freq = np.vstack((self.est_data_freq[m, :], input_data_freq_equalized))
+                            self.est_data_freq = np.vstack((self.est_data_freq[antenna_index, :], input_data_freq_equalized))
                             self.est_data_freq = self.est_data_freq[np.newaxis, :, :]
-                        data = self.est_data_freq[m, p, 0:len(self.used_bins_data)]
+                        data = self.est_data_freq[antenna_index, corr_obs_index, 0:len(self.used_bins_data)]
                         p_est1 = sum(data * np.conj(data)) / (len(data) + 1e-10)
 
-                        self.est_data_freq[
-                        m, p * self.synch_data_pattern[1] + data_sym, 0:len(self.used_bins_data)] /= np.sqrt(p_est1)
+                        self.est_data_freq[antenna_index, corr_obs_index * self.synch_data_pattern[1] + data_symbol_index, 0:len(self.used_bins_data)] /= np.sqrt(p_est1)
 
-                        data_out = self.est_data_freq[m, p * self.synch_data_pattern[1] + data_sym,
-                                   0:len(self.used_bins_data)]
-
+                        data_out = self.est_data_freq[antenna_index, corr_obs_index * self.synch_data_pattern[1] + data_symbol_index, 0:len(self.used_bins_data)]
                         out[0:len(data_out)] = data_out
         return len(output_items[0])
