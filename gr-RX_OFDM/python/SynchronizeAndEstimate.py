@@ -228,7 +228,7 @@ class SynchronizeAndEstimate(gr.sync_block):
             total_loops = int(np.ceil(input_with_freq_offset.shape[0] / self.stride_val))
             correlations_val_vector = np.zeros(total_loops)
 
-            ptr_adj, loop_count, frame_count = 0, 0, 0
+            ptr_adj, loop_count, pattern_count = 0, 0, 0
 
             tap_delay = 5
             symbol_count = np.zeros(tap_delay)
@@ -311,15 +311,12 @@ class SynchronizeAndEstimate(gr.sync_block):
                             self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 1] = correlation_index
                             self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 2] = correlation_value
 
-                            corrected_ptr[frame_count % tap_delay] = sum(self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 0:2])
-                            symbol_count[frame_count % tap_delay] = frame_count * sum(self.synch_data_pattern)  # No need for +1 on lhs
-                            print("X: ", symbol_count)
-                            frame_count += 1
+                            corrected_ptr[pattern_count % tap_delay] = sum(self.correlation_frame_index_value_buffer[antenna_index, self.correlation_observations, 0:2])
+                            symbol_count[pattern_count % tap_delay] = pattern_count * sum(self.synch_data_pattern)  # No need for +1 on lhs
+                            pattern_count += 1
 
                             symbol_count_current = symbol_count[0:min(self.correlation_observations, tap_delay)]
-                            print("X2: ", symbol_count_current)
-                            symbol_count_lookahead = np.concatenate((symbol_count_current, np.atleast_1d(frame_count * sum(self.synch_data_pattern))))
-                            print("Xplus: ", symbol_count_lookahead)
+                            symbol_count_lookahead = np.concatenate((symbol_count_current, np.atleast_1d(pattern_count * sum(self.synch_data_pattern))))
                             x_symbol_count_lookahead = np.zeros((len(symbol_count_lookahead), 2))
                             x_symbol_count_lookahead[:, 0] = np.ones(len(symbol_count_lookahead))
                             x_symbol_count_lookahead[:, 1] = symbol_count_lookahead
